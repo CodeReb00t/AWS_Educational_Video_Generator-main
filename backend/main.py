@@ -141,6 +141,66 @@ def _attachment_meta(files):
     ]
 
 
+def _parse_chat_history(history_payload: str | None):
+    if not history_payload:
+        return None
+    try:
+        raw_history = json.loads(history_payload)
+    except json.JSONDecodeError:
+        return None
+
+    if not isinstance(raw_history, list):
+        return None
+
+    cleaned = []
+    for entry in raw_history:
+        if not isinstance(entry, dict):
+            continue
+        role = entry.get("role")
+        content = entry.get("content")
+        if isinstance(role, str) and isinstance(content, str) and content.strip():
+            cleaned.append({"role": role, "content": content})
+
+    return cleaned or None
+
+
+def _normalize_text_output(output):
+    if output is None:
+        return None
+
+    if isinstance(output, str):
+        return output.strip()
+
+    if isinstance(output, list):
+        parts = []
+        for item in output:
+            if isinstance(item, str):
+                parts.append(item.strip())
+            elif isinstance(item, dict):
+                content = item.get("content")
+                if isinstance(content, str):
+                    parts.append(content.strip())
+        return "\n".join(filter(None, parts)) if parts else None
+
+    if isinstance(output, dict):
+        for key in ("output", "content", "message", "text"):
+            value = output.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        messages = output.get("messages")
+        if isinstance(messages, list):
+            parts = []
+            for msg in messages:
+                if isinstance(msg, dict):
+                    content = msg.get("content")
+                    if isinstance(content, str):
+                        parts.append(content.strip())
+            if parts:
+                return "\n".join(parts)
+
+    return str(output)
+
+
 # --- HELPER FUNCTIONS FOR BEDROCK T2V ---
 def poll_bedrock_job(invocation_arn: str) -> dict:
     """Checks the status of the asynchronous Bedrock T2V job."""
@@ -520,6 +580,41 @@ async def generate_bytez_task(job_id: str, prompt: str, model_slug: str, tool: s
         job_status[job_id]['status'] = "FAILED"
         job_status[job_id]['progress'] = str(e)
         job_status[job_id][key] = None
+
+
+@app.post("/api/text/{model_slug:path}")
+async def api_bytez_text_chat(
+    model_slug: str,
+    prompt: str = Form(...),
+    history: str | None = Form(None)
+):
+    if not sdk_bytez:
+        raise HTTPException(503, "Bytez SDK not initialized.")
+
+    messages = _parse_chat_history(history)
+    if not messages:
+        messages = [{"role": "user", "content": prompt}]
+
+    try:
+        model = sdk_bytez.model(model_slug)
+        response = model.run(messages)
+    except Exception as exc:
+        raise HTTPException(500, f"Text generation failed: {exc}")
+
+    output = getattr(response, "output", None)
+    error = getattr(response, "error", None)
+
+    if error:
+        raise HTTPException(500, str(error))
+
+    normalized = _normalize_text_output(output)
+
+    return {
+        "status": "COMPLETED",
+        "output": normalized,
+        "raw": output,
+        "messages": messages
+    }
 
 
 @app.post("/api/{tool}/{model_slug:path}")

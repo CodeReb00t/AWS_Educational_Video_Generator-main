@@ -47,6 +47,14 @@ const extractImageUrls = (payload: unknown): string[] => {
   ) {
     urls.add((payload as { image_url: string }).image_url);
   }
+  const imageUrls = (payload as { image_urls?: unknown }).image_urls;
+  if (Array.isArray(imageUrls)) {
+    imageUrls.forEach((url) => {
+      if (typeof url === "string") {
+        urls.add(url);
+      }
+    });
+  }
   const variations = (payload as { variations?: unknown }).variations;
   if (Array.isArray(variations)) {
     variations.forEach((variation) => {
@@ -61,6 +69,53 @@ const extractImageUrls = (payload: unknown): string[] => {
     });
   }
   return Array.from(urls);
+};
+
+const extractTextOutput = (payload: unknown): string | null => {
+  if (!payload) return null;
+  if (typeof payload === "string") return payload;
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "output" in payload &&
+    typeof (payload as { output: unknown }).output === "string"
+  ) {
+    return (payload as { output: string }).output;
+  }
+  if (typeof payload === "object" && payload !== null && "raw" in payload) {
+    const raw = (payload as { raw: unknown }).raw;
+    if (typeof raw === "string") {
+      return raw;
+    }
+    if (Array.isArray(raw)) {
+      const parts = raw
+        .map((entry) => {
+          if (typeof entry === "string") return entry;
+          if (
+            entry &&
+            typeof entry === "object" &&
+            "content" in entry &&
+            typeof (entry as { content?: unknown }).content === "string"
+          ) {
+            return (entry as { content: string }).content;
+          }
+          return null;
+        })
+        .filter((item): item is string => Boolean(item));
+      if (parts.length) {
+        return parts.join("\n");
+      }
+    }
+    if (
+      raw &&
+      typeof raw === "object" &&
+      "content" in raw &&
+      typeof (raw as { content?: unknown }).content === "string"
+    ) {
+      return (raw as { content: string }).content;
+    }
+  }
+  return null;
 };
 
 const getJobStringField = (
@@ -253,10 +308,28 @@ export function VideoGenerator({
       timestamp: Date.now(),
     };
 
+    const conversationForModel = [...chatMessages, userMessage];
+
     appendMessage(sessionId, userMessage);
     setPrompt("");
     setGlobalError(null);
     setIsSubmitting(true);
+
+    const metadata: Record<string, string> = {};
+    if (activeTool === "text") {
+      const historyPayload = conversationForModel
+        .filter(
+          (message) => message.role === "user" || message.role === "assistant"
+        )
+        .map((message) => ({
+          role: message.role,
+          content: message.content,
+        }))
+        .slice(-20);
+      if (historyPayload.length > 0) {
+        metadata.history = JSON.stringify(historyPayload);
+      }
+    }
 
     try {
       const response = await submitToolRequest({
@@ -264,6 +337,7 @@ export function VideoGenerator({
         model: selectedModel,
         prompt: trimmedPrompt,
         files: filesSnapshot,
+        metadata: Object.keys(metadata).length ? metadata : undefined,
       });
       console.log("Tool response:", response);
       if (activeTool === "video") {
@@ -305,7 +379,7 @@ export function VideoGenerator({
           timestamp: Date.now(),
           jobId: response.jobId,
         });
-      } else {
+      } else if (activeTool === "image") {
         const remoteJobId = response.jobId;
         if (remoteJobId) {
           const initialStatus =
@@ -388,6 +462,25 @@ export function VideoGenerator({
             jobId: imageJobId,
           });
         }
+      } else {
+        const assistantReply = extractTextOutput(response.data);
+        if (!assistantReply) {
+          throw new Error("Text tool returned an empty response.");
+        }
+        appendStatus(
+          sessionId,
+          `${new Date().toLocaleTimeString()} • Chat response received`
+        );
+        appendMessage(sessionId, {
+          id: createId(),
+          role: "assistant",
+          content: assistantReply,
+          tool: activeTool,
+          model: selectedModel,
+          status: "success",
+          timestamp: Date.now(),
+          data: response.data,
+        });
       }
       setAttachedFiles([]);
       resetAttachmentInput();
@@ -497,7 +590,7 @@ export function VideoGenerator({
       content: message,
       status: "error",
       timestamp: Date.now(),
-      tool: job?.tool ?? "video",
+      tool: job?.tool ?? activeTool,
       model: job?.model ?? activeJobModel ?? selectedModel,
       jobId,
     });
@@ -508,6 +601,8 @@ export function VideoGenerator({
     switch (activeTool) {
       case "image":
         return "Describe the image you want (lighting, medium, subject)...";
+      case "text":
+        return "Ask a question or start a Bytez chat...";
       default:
         return "Describe the lesson, tone, and scenes for your video...";
     }

@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ImageIcon, Plus, VideoIcon, type LucideIcon } from "lucide-react";
+import {
+  ImageIcon,
+  MessageSquare,
+  Plus,
+  VideoIcon,
+  type LucideIcon,
+} from "lucide-react";
 import { TOOL_ORDER, TOOL_SETTINGS, type ToolType } from "@/lib/model-config";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<ToolType, LucideIcon> = {
   video: VideoIcon,
   image: ImageIcon,
+  text: MessageSquare,
 };
 
 interface ToolSelectorProps {

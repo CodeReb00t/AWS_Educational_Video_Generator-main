@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
-import { Video, Image, FileText } from "lucide-react";
+import { Video, Image, FileText, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VideoGenerator } from "./video-generator";
 import { ScriptEditor } from "./script-editor.tsx";
 
-type TabKey = "script" | "video" | "image";
+type TabKey = "script" | "video" | "image" | "text";
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: "script", label: "Script", icon: FileText },
   { key: "video", label: "Video", icon: Video },
   { key: "image", label: "Image", icon: Image },
+  { key: "text", label: "Chat", icon: MessageSquare },
 ];
 
 export function ToolManager() {
@@ -22,6 +23,7 @@ export function ToolManager() {
       if (e.key === "1") setActive("script");
       if (e.key === "2") setActive("video");
       if (e.key === "3") setActive("image");
+      if (e.key === "4") setActive("text");
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -44,7 +46,7 @@ export function ToolManager() {
                     "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition",
                     active === tab.key
                       ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-muted/30",
+                      : "text-muted-foreground hover:bg-muted/30"
                   )}
                 >
                   <Icon className="size-4" /> {tab.label}
@@ -55,7 +57,7 @@ export function ToolManager() {
 
           <div className="flex items-center gap-3">
             <div className="text-xs text-muted-foreground">
-              Tip: Press 1/2/3 to switch
+              Tip: Press 1/2/3/4 to switch
             </div>
             {/* <details className="relative">
               <summary className="cursor-pointer rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted/30">
@@ -107,6 +109,10 @@ export function ToolManager() {
 
           {active === "image" && (
             <VideoGenerator initialTool={"image"} initialPrompt={script} />
+          )}
+
+          {active === "text" && (
+            <VideoGenerator initialTool={"text"} initialPrompt={script} />
           )}
         </div>
       </div>
