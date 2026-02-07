@@ -65,7 +65,7 @@ const extractImageUrls = (payload: unknown): string[] => {
 
 const getJobStringField = (
   payload: unknown,
-  field: "status" | "progress",
+  field: "status" | "progress"
 ): string | undefined => {
   if (
     payload &&
@@ -111,17 +111,17 @@ export function VideoGenerator({
 }) {
   const [prompt, setPrompt] = useState<string>(() => initialPrompt ?? "");
   const [activeTool, setActiveTool] = useState<ToolType>(
-    () => initialTool ?? "video",
+    () => initialTool ?? "video"
   );
   const [selectedModel, setSelectedModel] = useState(() =>
-    getDefaultModel(initialTool ?? "video"),
+    getDefaultModel(initialTool ?? "video")
   );
   const [attachedFiles, setAttachedFiles] = useState<PendingAttachment[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeJobModel, setActiveJobModel] = useState<string | null>(null);
   const [activeJobSessionId, setActiveJobSessionId] = useState<string | null>(
-    null,
+    null
   );
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [boostNotice, setBoostNotice] = useState<string | null>(null);
@@ -152,7 +152,7 @@ export function VideoGenerator({
     size: item.file.size,
   }));
   const attachmentsForMessages: AttachmentMeta[] = attachmentChips.map(
-    ({ name, size }) => ({ name, size }),
+    ({ name, size }) => ({ name, size })
   );
 
   useEffect(() => {
@@ -173,7 +173,7 @@ export function VideoGenerator({
 
   const ensureSession = (
     seedPrompt: string,
-    attachments: AttachmentMeta[],
+    attachments: AttachmentMeta[]
   ): string => {
     if (activeSession && activeSessionId) {
       return activeSessionId;
@@ -265,11 +265,11 @@ export function VideoGenerator({
         prompt: trimmedPrompt,
         files: filesSnapshot,
       });
-
+      console.log("Tool response:", response);
       if (activeTool === "video") {
         if (!response.jobId) {
           throw new Error(
-            "Video tool did not return a job id. Please try another model.",
+            "Video tool did not return a job id. Please try another model."
           );
         }
         setActiveJobId(response.jobId);
@@ -288,11 +288,11 @@ export function VideoGenerator({
           sessionId,
           response.jobId,
           "QUEUED",
-          "Awaiting generation...",
+          "Awaiting generation..."
         );
         appendStatus(
           sessionId,
-          `${new Date().toLocaleTimeString()} • Job queued with ${selectedModel}`,
+          `${new Date().toLocaleTimeString()} • Job queued with ${selectedModel}`
         );
         updateSession(sessionId, { jobId: response.jobId });
         appendMessage(sessionId, {
@@ -326,11 +326,11 @@ export function VideoGenerator({
             sessionId,
             remoteJobId,
             initialStatus,
-            initialProgress,
+            initialProgress
           );
           appendStatus(
             sessionId,
-            `${new Date().toLocaleTimeString()} • Image job queued with ${selectedModel}`,
+            `${new Date().toLocaleTimeString()} • Image job queued with ${selectedModel}`
           );
           updateSession(sessionId, { jobId: remoteJobId });
           appendMessage(sessionId, {
@@ -368,7 +368,7 @@ export function VideoGenerator({
           });
           appendStatus(
             sessionId,
-            `${new Date().toLocaleTimeString()} • Image response received`,
+            `${new Date().toLocaleTimeString()} • Image response received`
           );
           appendMessage(sessionId, {
             id: createId(),
@@ -412,7 +412,7 @@ export function VideoGenerator({
   const handleJobSuccess = (
     payload: JobStatus,
     sessionId: string | null,
-    jobId: string | null,
+    jobId: string | null
   ) => {
     if (!sessionId || !jobId) return;
     const session = sessions.find((item) => item.id === sessionId);
@@ -433,7 +433,7 @@ export function VideoGenerator({
         sessionId,
         jobId,
         "COMPLETED",
-        payload.progress || "Video ready",
+        payload.progress || "Video ready"
       );
       appendMessage(sessionId, {
         id: createId(),
@@ -458,7 +458,7 @@ export function VideoGenerator({
         sessionId,
         jobId,
         "COMPLETED",
-        payload.progress || "Images ready",
+        payload.progress || "Images ready"
       );
       appendMessage(sessionId, {
         id: createId(),
@@ -479,7 +479,7 @@ export function VideoGenerator({
   const handleJobError = (
     message: string,
     sessionId: string | null,
-    jobId: string | null,
+    jobId: string | null
   ) => {
     if (!sessionId || !jobId) return;
     const session = sessions.find((item) => item.id === sessionId);
@@ -708,7 +708,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       "border border-destructive/30 bg-destructive/5 text-destructive-foreground",
     !isUser && message.status === "success" && "bg-muted/50 text-foreground",
     !isUser && message.status === "info" && "bg-muted/30 text-foreground",
-    !isUser && !message.status && "bg-transparent text-foreground",
+    !isUser && !message.status && "bg-transparent text-foreground"
   );
 
   return (
@@ -716,7 +716,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       layout
       className={cn(
         "flex gap-4 py-2",
-        isUser ? "justify-end" : "justify-start",
+        isUser ? "justify-end" : "justify-start"
       )}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -729,7 +729,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       <div
         className={cn(
           "max-w-3xl space-y-3",
-          isUser && "flex flex-col items-end",
+          isUser && "flex flex-col items-end"
         )}
       >
         <div className={bubbleClasses}>

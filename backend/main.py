@@ -483,7 +483,7 @@ async def generate_bytez_task(job_id: str, prompt: str, model_slug: str, tool: s
         error = getattr(res, "error", None)
 
         is_video = tool.lower() == "video"
-        key = "video_url" if is_video else "image_url"
+        key = "video_url" if is_video else "image_urls"
 
         if error:
             job_status[job_id]['status'] = "FAILED"
@@ -513,10 +513,10 @@ async def generate_bytez_task(job_id: str, prompt: str, model_slug: str, tool: s
 
             job_status[job_id]['status'] = "COMPLETED"
             job_status[job_id]['progress'] = f"{len(image_urls)} image(s) generated"
-            job_status[job_id]['image_url'] = image_urls
+            job_status[job_id]['image_urls'] = image_urls
 
     except Exception as e:
-        key = "video_url" if tool.lower() == "video" else "image_url"
+        key = "video_url" if tool.lower() == "video" else "image_urls"
         job_status[job_id]['status'] = "FAILED"
         job_status[job_id]['progress'] = str(e)
         job_status[job_id][key] = None
@@ -543,7 +543,7 @@ async def api_bytez_universal(
         "status": "QUEUED",
         "progress": "Waiting to start...",
         "video_url": None,
-        "image_url": None,
+        "image_urls": None,
         "model_slug": model_slug,
         "tool": tool
     }
